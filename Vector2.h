@@ -1,21 +1,26 @@
 #pragma once
 #include <math.h>
+#include "SFML/Graphics.hpp"
 
-class Vector2
+class vec2_t
 {
-private:
-	float x, y;
 public:
-	Vector2(float x, float y);
+	float x, y;
 
-	Vector2 normalize();
-	Vector2 crossProduct(Vector2 b);
+	vec2_t() 
+		:x(0.f), y(0.f) {};
+	vec2_t(float x, float y);
+
+	vec2_t normalize();
+	vec2_t crossProduct(vec2_t b);
 	float length();
-	float dotProduct(Vector2 b);
+	float dotProduct(vec2_t b);
 
-	inline Vector2 operator/(const float t);
-	inline Vector2 operator+(Vector2 a);
-	inline Vector2 operator-(Vector2 a);
-	inline Vector2 operator*(const float t);
-	inline Vector2 operator/=(const float t);
+	inline vec2_t operator/(const float t);
+	inline vec2_t operator+(vec2_t a);
+	inline vec2_t operator-(vec2_t a);
+	inline vec2_t operator*(const float t);
+	inline vec2_t operator/=(const float t);
+
+	operator sf::Vector2f();
 };
