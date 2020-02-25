@@ -1,42 +1,65 @@
 #pragma once
-#include "SFML\Graphics.hpp"
+#include <SFML\Graphics.hpp>
+#include <vector>
 #include "Vector2.h"
+#include <math.h>
 
-#define DEFAULT_GRAVITY 9.82
+constexpr float GRAVITY = 9.82f;
 
-class Ball : public sf::Drawable
+
+class Ball:public sf::Drawable
 {
 private:
-	vec2_t m_velocity;
-	vec2_t m_position;
+	sf::CircleShape* shape;
 
-	//some variables for our sphere
-	float m_radius; //in meters
-	float m_mass; //in kilograms
+	unsigned int dotBufferCount = 15;
+	float dotRadius = 5.f;
+	unsigned int dotDensity = 30;
+	sf::CircleShape* dots = new sf::CircleShape[dotBufferCount];
+	int dotIndex = 0;
 
-	//this is just the physical representation of said sphere (in 2d)
-	//maybe we should have a sprite instead, so we can see it rotate?
-	//it won't be as easy to link the graphic part of the simulation
-	//to the mathematical then though.
-	sf::CircleShape m_sphere;
 
-	float m_gravity;
+	float radius;
+	float angle;
+	float velocityX;
+	float velocityY;
+	float xPos;
+	float yPos;
+	float resultingVelocity;
+
+	bool started = false;
+
+	vec2_t startVelocity;
+	vec2_t startPos;
+
+	//sf::Vector2f startVelocity;
+	//sf::Vector2f currentVelocity;
+
+	//sf::Vector2f currentPos;
+	//sf::Vector2i startPos;
+
+	float timeSinceStart = 0.f;
+
 
 public:
+	Ball(float radius, sf::Color color = sf::Color::Red);
 
-	Ball();
-	Ball(vec2_t position, vec2_t velocity, float radius, float mass);
-	~Ball();
+	void shoot(sf::Vector2i startPos, sf::Vector2f vel);
 
-	void setPosition(vec2_t position);
-	void setVelocity(vec2_t position);
+	void update(float dt, sf::Vector2i cursorPos);
 
-	//handle all updates and physics calculations directly in this class?
-	void update(float deltaTime);
+	bool hasStared() {
+		return this->started;
+	}
 
-	vec2_t getPosition();
-	vec2_t getVelocity();
+	sf::Vector2f getPosition() {
+		return this->startPos;
+	}
 
 	// Inherited via Drawable
 	virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const override;
+
+
+	~Ball();
 };
+
