@@ -2,7 +2,7 @@
 #include <SFML\Graphics.hpp>
 #include <vector>
 
-constexpr float GRAVITY = 0.03f;
+constexpr float GRAVITY = 2.f;
 
 
 class Ball:public sf::Drawable
@@ -22,8 +22,9 @@ private:
 	bool started = false;
 
 
+	sf::Vector2f startVelocity;
+	sf::Vector2f currentVelocity;
 
-	sf::Vector2f velocity;
 	sf::Vector2f currentPos;
 	sf::Vector2i startPos;
 

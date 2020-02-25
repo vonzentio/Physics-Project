@@ -11,14 +11,16 @@ Ball::Ball(float radius, sf::Color color)
 void Ball::shoot(sf::Vector2i startPos, sf::Vector2f vel)
 {
 	this->started = true;
-	this->velocity = vel;
+	this->startVelocity = vel;
+	this->currentVelocity = startVelocity;
 	this->startPos = startPos;
 
 }
 
-void Ball::update(float dt, sf::Vector2i cursorPos)
+void Ball::update(float dt, sf::Vector2i cursorPos )
 {
 	static int dotDelay = 0;
+
 
 	if (started)
 	{
@@ -29,8 +31,11 @@ void Ball::update(float dt, sf::Vector2i cursorPos)
 
 
 
-		float deltaX = this->velocity.x * timeSinceStart;
-		float posY = velocity.y + (GRAVITY * timeSinceStart);
+		float deltaX = this->startVelocity.x * timeSinceStart;
+		float posY = currentVelocity.y * dt - ( ( GRAVITY * pow(dt, 2) ) / 2);
+
+
+		this->currentVelocity.y = startVelocity.y - (GRAVITY * dt);
 
 		this->currentPos = sf::Vector2f(startPos.x + deltaX, posY);
 		this->shape->setPosition(this->currentPos);

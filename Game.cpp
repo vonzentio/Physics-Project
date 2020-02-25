@@ -27,7 +27,7 @@ void Game::start()
 			if (e.type == sf::Event::MouseButtonPressed && e.mouseButton.button == sf::Mouse::Left)
 			{
 				if (!b->hasStared())
-					b->shoot(sf::Mouse::getPosition(*this->window), sf::Vector2f(0.1, 0.01));
+					b->shoot(sf::Mouse::getPosition(*this->window), sf::Vector2f(0.2, 0.1));
 			}
 
 		}
