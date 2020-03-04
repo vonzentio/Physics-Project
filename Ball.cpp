@@ -2,7 +2,7 @@
 
 Ball::Ball(float radius, sf::Color color)
 	:radius(radius), m_frameTime(0), m_airForce(0), m_mass(0),
-	m_totalTime(0)
+	m_totalTime(0), m_magnusForce(0), m_totalForce(0)
 {
 	this->shape = new sf::CircleShape(radius);
 	this->shape->setFillColor(color);
@@ -35,7 +35,7 @@ void Ball::shoot(sf::Vector2f startPos, float vel, float angle)
 
 	this->dots[dotIndex++] = dot;
 
-	this->m_mass = 0.2;
+	this->m_mass = 2;
 }
 
 void Ball::update(float dt, sf::Vector2f cursorPos )
@@ -75,6 +75,8 @@ void Ball::update(float dt, sf::Vector2f cursorPos )
 			The velocity based on previous frame
 			New position
 
+			Jämför mot: https://www.desmos.com/calculator/on4xzwtdwz
+
 			save: 
 			currentPos = newPos;
 			currentVelocity = newVelocity;
@@ -87,18 +89,26 @@ void Ball::update(float dt, sf::Vector2f cursorPos )
 
 		//förenkla formeln, men håll den separat från magnus. Jag är inte helt hundra på det här än. 
 		//som sagt, den är en aning bork'd atm-
-		/*this->airForce = -0.29 * ((1.2041 * M_PI * pow(radius, 2) * pow(resultingVelocity, 2)) / 2); 
-		
-		float airX = this->airForce * cosf(angle);
-		this->accelerationX = airX / this->mass;
+		this->doAir();
+		this->doMagnus();
+		this->m_totalForce = -m_magnusForce + m_airForce;
 
-		float airY = this->airForce * sinf(angle);
-		this->accelerationY = (airY / mass) + GRAVITY;*/
+		float forceX = m_totalForce * cos(angle);
+		this->accelerationX = forceX / m_mass;
+
+		float forceY = m_totalForce * sin(angle) - m_mass*GRAVITY;
+		this->accelerationY = forceY / m_mass;
 
 		this->velocityX += this->accelerationX * this->m_frameTime;
 		this->velocityY += this->accelerationY * this->m_frameTime;
 
 		this->startVelocity = sf::Vector2f(this->velocityX, this->velocityY);
+		this->resultingVelocity = sqrt((this->startVelocity.x * this->startVelocity.x +
+			this->startVelocity.y * this->startVelocity.y));
+
+		this->deltaAngle = atanf(this->startVelocity.y / this->startVelocity.x) - angle;
+		this->angle = atanf(this->startVelocity.y / this->startVelocity.x);
+
 		this->currentPos.x = this->currentPos.x + this->velocityX * this->m_frameTime;
 		this->currentPos.y = this->currentPos.y - this->velocityY * this->m_frameTime;
 
@@ -126,6 +136,25 @@ void Ball::update(float dt, sf::Vector2f cursorPos )
 		this->shape->setPosition((float)cursorPos.x, (float)cursorPos.y);
 	}
 
+}
+
+void Ball::doAir()
+{
+	//Negativ, då kraften kommer att vara riktad åt motsatt håll som vår boll färdas.
+	//Vet inte riktigt vilken koeefficient vi borde ha här, men det är nog bara att välja en
+	//så länge vi kan hänvisa till bra källor för det. Likadant med luftmotståndet. 
+	this->m_airForce = -0.47 * ((1.2941 * M_PI * pow(radius * 0.01, 2) * pow(resultingVelocity, 2)) / 2);
+	//float airX = this->m_airForce * cosf(angle);
+	//this->accelerationX = airX / this->m_mass;
+
+	//float airY = this->m_airForce * sinf(angle) - this->m_mass * GRAVITY;
+	//this->accelerationY = (airY / m_mass);
+}
+
+void Ball::doMagnus()
+{
+	float angularVelocity = deltaAngle / m_frameTime;
+	this->m_magnusForce = (2*M_PI* 1.2941*resultingVelocity*pow(radius * 0.001, 2)*angularVelocity) / (2*(radius*0.01));
 }
 
 void Ball::draw(sf::RenderTarget& target, sf::RenderStates states) const

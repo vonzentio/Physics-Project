@@ -29,7 +29,7 @@ private:
 
 	unsigned int dotBufferCount = 128;
 	float dotRadius = 1.f;
-	unsigned int dotDensity = 10;
+	unsigned int dotDensity = 5;
 	int dotIndex;
 
 	float m_frameTime;
@@ -37,9 +37,13 @@ private:
 
 	float m_mass;
 	float m_airForce;
+	float m_magnusForce;
+
+	float m_totalForce;
 
 	float radius;
 	float angle;
+	float deltaAngle;
 	float accelerationX;
 	float accelerationY;
 	float velocityX;
@@ -47,6 +51,8 @@ private:
 	float xPos;
 	float yPos;
 	float resultingVelocity;
+
+
 
 	bool started;
 	bool airResistance;
@@ -61,6 +67,8 @@ public:
 	void shoot(sf::Vector2f startPos, float vel, float angle);
 
 	void update(float dt, sf::Vector2f cursorPos);
+	void doAir();
+	void doMagnus();
 
 	bool hasStarted() {
 		return this->started;
