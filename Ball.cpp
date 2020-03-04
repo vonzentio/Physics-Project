@@ -41,9 +41,11 @@ void Ball::shoot(sf::Vector2f startPos, float vel, float angle)
 void Ball::update(float dt, sf::Vector2f cursorPos )
 {
 	static int dotDelay = 0;
+	static float timeSinceLauch = 0.0f;
 
 	if (started)
 	{
+		timeSinceLauch += dt;
 		dotDelay++;
 
 		/*
@@ -115,6 +117,16 @@ void Ball::update(float dt, sf::Vector2f cursorPos )
 		//Set position before you calculate the new position, or else the " point of origin" 
 		//won't ever be used, as we update the position before it is used.
 
+		//Save current Values afor output;
+		output_info info;
+		info.posX = std::to_string(currentPos.x);
+		info.posY = std::to_string(currentPos.y);
+		info.velX = std::to_string(this->velocityX);
+		info.velY = std::to_string(this->velocityY);
+		info.timeSinceLauch = std::to_string(timeSinceLauch);
+		this->projectile_info.push_back(info);
+
+
 		if (dotDelay == dotDensity)
 		{
 			if (dotIndex == dotBufferCount)
@@ -156,6 +168,13 @@ void Ball::doMagnus()
 	float angularVelocity = deltaAngle / m_frameTime;
 	this->m_magnusForce = (2*M_PI* 1.2941*resultingVelocity*pow(radius * 0.001, 2)*angularVelocity) / (2*(radius*0.01));
 }
+
+void Ball::setFinished()
+{
+	this->shape->setFillColor(sf::Color(0, 0, 0, 0));
+}
+
+
 
 void Ball::draw(sf::RenderTarget& target, sf::RenderStates states) const
 {

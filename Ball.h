@@ -21,9 +21,29 @@ constexpr float GRAVITY = 9.82f;
 	Add output of velocity, distance, and such to a textfile, in order to speed up the information gathering for the report.	
 */
 
+enum REALISM {
+	ALL,
+	ONLY_GRAVITY,
+	AIR_RESISTANCE,
+	MAGNUS_EFFECT
+};
+
 class Ball:public sf::Drawable
 {
+public:
+	struct output_info {
+		std::string realismMode = "Projectile Motion - Full Realism";
+		std::string timeSinceLauch;
+		std::string posX;
+		std::string posY;
+		std::string velX;
+		std::string velY;
+	};
+
 private:
+	std::vector<output_info> projectile_info;
+
+
 	sf::CircleShape* shape;
 	sf::CircleShape* dots;
 
@@ -54,7 +74,9 @@ private:
 
 
 
-	bool started;
+	bool started = false;
+	bool done = false;
+
 	bool airResistance;
 	bool magnus;
 
@@ -70,8 +92,22 @@ public:
 	void doAir();
 	void doMagnus();
 
+	void setFinished();
+
+	std::vector<output_info> getProjectileInfo() {
+		return this->projectile_info;
+	}
+
+	bool hasFinished() {
+		return this->done;
+	}
+
 	bool hasStarted() {
 		return this->started;
+	}
+
+	sf::FloatRect getBoundingBox() {
+		return this->shape->getGlobalBounds();
 	}
 
 	sf::Vector2f getPosition() {
