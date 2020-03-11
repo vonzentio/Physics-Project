@@ -21,6 +21,7 @@ void Ground::update(std::vector<Ball*>& balls, std::vector<Ball::output_info>& i
 		}
 
 	}
+	
 
 }
 

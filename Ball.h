@@ -52,7 +52,7 @@ private:
 	sf::Vertex* lineVertices;
 	sf::Color dotColor = sf::Color::Green;
 
-	unsigned int dotBufferCount = 128;
+	unsigned int dotBufferCount = 256;
 	float dotRadius = 0.7f;
 	unsigned int dotDensity = 5;
 	int lineIndex = 0;
@@ -138,7 +138,6 @@ public:
 
 	void setMass(float newMass) {
 		this->m_mass = newMass;
-		std::cout << m_mass << std::endl;
 	}
 
 	float getRadius() {

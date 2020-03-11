@@ -129,7 +129,7 @@ Game::Game(unsigned int width, unsigned int height, const char* title)
 	this->massTextBox->setSize(textBoxSize);
 	this->massTextBox->setVerticalScrollbarPolicy(tgui::Scrollbar::Policy::Never);
 	this->massTextBox->setText("0.45");
-	this->massTextBox->connect("TextChanged", [&] {this->mass = std::stof(massTextBox->getText().toAnsiString()); });
+	this->massTextBox->connect("TextChanged", [&] {if (sf::Keyboard::isKeyPressed(sf::Keyboard::Enter))  this->mass = std::stof(massTextBox->getText().toAnsiString()); });
 	
 
 
@@ -240,7 +240,7 @@ void Game::start()
 			}
 			
 
-			std::cout << deltaTime  << std::endl;
+			//std::cout << deltaTime  << std::endl;
 
 
 			sf::Vector2i mousePos = sf::Mouse::getPosition(*this->window);

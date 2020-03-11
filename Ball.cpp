@@ -1,7 +1,7 @@
 #include "Ball.h"
 
 Ball::Ball(float radius, sf::Color color)
-	:radius(radius * 0.01), m_frameTime(0), m_airForce(0), m_mass(0),
+	:radius(radius * 0.01), m_frameTime(0), m_airForce(0), m_mass(0.45f),
 	m_totalTime(0), m_magnusForce(0), m_totalForce(0), speen(-2*M_PI*10), angularVelocity(6*M_PI)
 {
 	this->shape = new sf::CircleShape(radius);
@@ -53,8 +53,6 @@ void Ball::shoot(sf::Vector2f startPos, float vel, float angle, REALISM mode)
 	this->dots[dotIndex++] = dot;
 	this->dotDelay = 0;
 
-	this->m_mass = 0.45;
-
 	switch (mode)
 	{
 	case ALL:
@@ -104,6 +102,7 @@ void Ball::update(float dt)
 			break;
 		}
 		
+		std::cout << this->m_mass << std::endl;
 
 		this->m_totalForce = m_magnusForce + m_airForce;
 
