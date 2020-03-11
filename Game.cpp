@@ -9,8 +9,8 @@ Game::Game(unsigned int width, unsigned int height, const char* title)
 	this->window_height = height;
 	this->window_width = width;
 
-	this->radius = 5.f;
-	this->velocity = 40.f;
+	this->radius = 11.f;
+	this->velocity = 30.f;
 	this->angle = 30.f;
 
 	tgui::Theme::setDefault(&this->theme);
@@ -43,7 +43,7 @@ Game::Game(unsigned int width, unsigned int height, const char* title)
 	this->velSlider = tgui::Slider::create(0.f, 100.f);
 	this->velSlider->setPosition(view.getCenter().x - (view.getSize().x / 2) + this->velSlider->getSize().x / 2, view.getCenter().y - (view.getSize().y / 2) + 40.f);
 	this->gui.add(this->velSlider);
-	this->velSlider->setValue(40.f);
+	this->velSlider->setValue(this->velocity);
 	this->velSlider->connect("ValueChanged", [&] {this->velocity = velSlider->getValue(); });
 	this->velSlider->setToolTip(tgui::Label::create("Changes the velocity of the ball"));
 
@@ -140,24 +140,6 @@ void Game::start()
 			if (e.type == sf::Event::Closed)
 				this->window->close();
 
-			//if (e.type == sf::Event::MouseButtonPressed && e.mouseButton.button == sf::Mouse::Left)
-			//{
-			//	sf::Vector2i mousePos = sf::Mouse::getPosition(*this->window);
-			//	sf::Vector2f worldPos = window->mapPixelToCoords(mousePos);
-
-			//	if (!this->balls.back()->hasStarted())
-			//	{
-			//		this->balls.back()->shoot(worldPos, 40.f, 30.f);
-			//	}
-			//	else
-			//	{
-			//		Ball* ball = new Ball(5.0f);
-			//		this->balls.push_back(ball);
-			//		this->balls.back()->shoot(worldPos, velocity, angle);
-			//	}
-
-			//}
-
 			//Update the text on the sliders
 			//Can only happen during mouse mooved and mouse scrolled event
 			if (e.type == sf::Event::MouseWheelScrolled || e.type == sf::Event::MouseMoved)
@@ -175,17 +157,17 @@ void Game::start()
 				//sf::Vector2f worldPos = window->mapPixelToCoords(mousePos);
 
 				sf::Vector2f worldPos = sf::Vector2f(this->m_view.getCenter().x - (this->m_view.getSize().x / 2) + radius,
-					this->m_view.getCenter().y + (this->m_view.getSize().y / 2) - 10);
+					this->m_view.getCenter().y + (this->m_view.getSize().y / 2) - radius * 0.01f - this->ground->getSize().y);
 
 
 				if (!this->balls.back()->hasStarted() && !this->balls.empty())
 				{
-					this->balls.back()->shoot(worldPos, 40.f, 30.f, this->levelOfRealism);
+					this->balls.back()->shoot(worldPos, velocity, angle, this->levelOfRealism);
 				}
 				else
 				{
 					
-					Ball* ball = new Ball(5.0f);
+					Ball* ball = new Ball(radius);
 					this->balls.push_back(ball);
 					this->balls.back()->shoot(worldPos, velocity, angle, this->levelOfRealism);
 					
@@ -268,10 +250,16 @@ void Game::output_info(const char* textfile)
 
 	}
 
-	outFile << "| Time since lauch | " << " | Position X | " << " | Position Y | " << "| Velocity X |" << " | Velocity Y | " << std::endl;
+	outFile << "| Tot. Time | " << " | Position X | " << " | Position Y | " << "| Velocity X |" << " | Velocity Y | " << " | Realism Level | " << std::endl;
 	for (auto i : file_output)
 	{
-		outFile << "|	" << i.timeSinceLauch << "  |	|" << i.posX << "| |" << i.posY << "| |" << i.velX << "| |" << i.velY << "  |" << std::endl;
+		outFile << "|	" << i.timeSinceLauch << "  |	|" << i.posX << "| |" << i.posY << "| |" << i.velX << "| |" << i.velY << " | ";
+		if (i.realismMode != " ")
+		{
+			outFile << "| " << i.realismMode << " | ";
+		}
+
+		outFile << std::endl;
 	}
 
 	outFile.close();

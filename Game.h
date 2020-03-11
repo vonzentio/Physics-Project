@@ -8,7 +8,7 @@
 #include "Ball.h"
 #include "Ground.h"
 
-#include <TGUI\TGUI.hpp>
+#include <TGUI/TGUI.hpp>
 
 //make sure you can toggle things on/off, like air resistance, magnus, follow-ball-garbage.
 //Also, implement a way to vary the delta-t to showcase how we can change it on the fly. 

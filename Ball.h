@@ -32,7 +32,7 @@ class Ball:public sf::Drawable
 {
 public:
 	struct output_info {
-		std::string realismMode = "Projectile Motion - Full Realism";
+		std::string realismMode = " ";
 		std::string timeSinceLauch;
 		std::string posX;
 		std::string posY;
@@ -45,6 +45,8 @@ private:
 
 
 	sf::CircleShape* shape;
+	sf::Sprite* sprite;
+	sf::Texture* texture;
 	sf::CircleShape* dots;
 	sf::Color dotColor = sf::Color::Green;
 
@@ -73,8 +75,9 @@ private:
 	float xPos;
 	float yPos;
 	float resultingVelocity;
+	float m_area;
 
-
+	float speen;
 
 	bool started = false;
 	bool done = false;
