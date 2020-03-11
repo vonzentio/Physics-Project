@@ -20,7 +20,10 @@ public:
 
 	// Inherited via Drawable
 	virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const override;
-
+	sf::Vector2f getSize()
+	{
+		return this->ground->getSize();
+	}
 
 	~Ground() {
 		delete this->ground;
