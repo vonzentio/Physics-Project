@@ -1,68 +1,144 @@
 #include "Ball.h"
 
 Ball::Ball(float radius, sf::Color color)
-	:radius(radius)
+	:radius(radius * 0.01), m_frameTime(0), m_airForce(0), m_mass(0),
+	m_totalTime(0), m_magnusForce(0), m_totalForce(0), angularVelocity(6*M_PI), oldVel(0)
 {
 	this->shape = new sf::CircleShape(radius);
 	this->shape->setFillColor(color);
-	this->shape->setRadius(radius);
-	this->shape->setOrigin(sf::Vector2f(radius, radius));
+	this->shape->setRadius(radius * 0.01);
+	this->shape->setOrigin(sf::Vector2f(radius* 0.01, radius* 0.01));
+	this->dots = new sf::CircleShape[dotBufferCount];
+	this->started = false;
+	this->m_mode = REALISM::ONLY_GRAVITY;
+	this->m_area = this->radius * this->radius * M_PI;
+
+	this->texture = new sf::Texture();
+	this->texture->loadFromFile("wonk-ball.png");
+	this->sprite = new sf::Sprite();
+	this->sprite->setTexture(*texture);
+	this->sprite->setOrigin(this->texture->getSize().x/2, this->texture->getSize().y / 2);
+	this->sprite->setScale(0.1, 0.1);
 }
 
-void Ball::shoot(sf::Vector2i startPos, sf::Vector2f vel)
+void Ball::shoot(sf::Vector2f startPos, float vel, float angle, REALISM mode)
 {
 	this->started = true;
-	this->startPos = vec2_t(startPos.x, startPos.y);
+	this->currentPos = startPos;
 	this->xPos = 0;
 	this->yPos = 0;
-	this->startVelocity = vec2_t(vel.x, vel.y);
-	this->resultingVelocity = this->resultingVelocity = sqrt(pow(startVelocity.x, 2) + pow(startVelocity.y, 2));;
-	this->angle = atanf(this->startVelocity.y / this->startVelocity.x);
-	this->velocityX = 0.f;
-	this->velocityY = 0.f;
+	this->resultingVelocity = vel;
+	this->angle = angle * (M_PI / 180);
+	this->startVelocity.x = resultingVelocity * cosf(angle * (M_PI / 180));
+	this->startVelocity.y = resultingVelocity * sinf(angle * (M_PI / 180));
+	this->velocityX = startVelocity.x;
+	this->velocityY = startVelocity.y;
+	this->accelerationX = 0;
+	this->accelerationY = 0;
+
+	this->m_mode = mode;
+
+	output_info info;
+	info.posX = std::to_string(currentPos.x);
+	info.posY = std::to_string(currentPos.y);
+	info.velX = std::to_string(this->velocityX);
+	info.velY = std::to_string(this->velocityY);
+	info.timeSinceLauch = std::to_string(m_totalTime);
+
+	sf::CircleShape dot(dotRadius);
+	dot.setFillColor(this->dotColor);
+	dot.setOrigin(sf::Vector2f(dotRadius, dotRadius));
+
+	this->dots[dotIndex++] = dot;
+	this->dotDelay = 0;
+
+	this->m_mass = 0.45f;
+
+	switch (mode)
+	{
+	case ALL:
+		this->dotColor = sf::Color::Magenta;
+		info.realismMode = "All";
+		break;
+	case ONLY_GRAVITY:
+		info.realismMode = "Gravity";
+		break;
+	case AIR_RESISTANCE:
+		this->dotColor = sf::Color(40, 108, 130);
+		info.realismMode = "Air";
+		break;
+	case MAGNUS_EFFECT:
+		this->dotColor = sf::Color::Yellow;
+		info.realismMode = "Magnus";
+		break;
+	}
+	this->projectile_info.push_back(info);
+	dot.setPosition(this->currentPos.x, currentPos.y);
+	this->shape->setPosition(this->currentPos);
+	this->sprite->setPosition(this->currentPos);
 }
 
-void Ball::update(float dt, sf::Vector2i cursorPos )
+void Ball::update(float dt)
 {
-	static int dotDelay = 0;
-
-
-	if (started)
+	if (started && !done)
 	{
 		dotDelay++;
 
-		/*
-			Calculate: 
-			
-			Acceleration. Until we add 
+		this->m_frameTime = (dt / 1000);
+		this->m_totalTime += m_frameTime;
 
-			The velocity based on previous frame
-			New position
+		switch (this->m_mode)
+		{
+		case(ONLY_GRAVITY):
+			break;
+		case(AIR_RESISTANCE):
+			this->doAir();
+			break;
+		case(MAGNUS_EFFECT):
+			this->doMagnus();
+			break;
+		case(ALL):
+			this->doAir();
+			this->doMagnus();
+			break;
+		}
 
-			save: 
-			currentPos = newPos;
-			currentVelocity = newVelocity;
-		*/
+		this->m_totalForce = m_magnusForce + m_airForce;
 
-		float time = dt / 100;
+		float forceX = m_totalForce * cosf(angle);
+		this->accelerationX = forceX / m_mass;
 
-		sf::Vector2f position;
+		float forceY = m_totalForce * sinf(angle)- m_mass * GRAVITY;
+		this->accelerationY = (forceY / m_mass);
 
+		this->velocityX += this->accelerationX * this->m_frameTime;
+		this->velocityY += this->accelerationY * this->m_frameTime;
+
+		this->startVelocity = sf::Vector2f(this->velocityX, this->velocityY);
+		this->oldVel = resultingVelocity;
+		this->resultingVelocity = sqrt((this->startVelocity.x * this->startVelocity.x +
+			this->startVelocity.y * this->startVelocity.y));
+
+		this->deltaAngle = atanf(this->startVelocity.y / this->startVelocity.x) - angle;
 		this->angle = atanf(this->startVelocity.y / this->startVelocity.x);
-		this->startVelocity.x = this->resultingVelocity * cos(angle);
-		this->startVelocity.y = this->resultingVelocity * sin(angle);
 
-		this->velocityX = startVelocity.x;
-		this->velocityY = startVelocity.y;
+		this->currentPos.x = this->currentPos.x + this->velocityX * this->m_frameTime;
+		this->currentPos.y = this->currentPos.y - this->velocityY * this->m_frameTime;
 
-		this->xPos = this->velocityX * time;
-		this->yPos = this->velocityY - ((GRAVITY * time * time)/2.f);
+		this->shape->setPosition(this->currentPos);
+		this->sprite->setPosition(this->currentPos);
 
-		position = sf::Vector2f(startPos.x + xPos,  startPos.y + yPos);
-		this->shape->setPosition(sf::Vector2f(position.x, position.y));
-		this->startPos = vec2_t(position.x, position.y);
+		//Save current Values afor output;
+		output_info info;
+		info.posX = std::to_string(currentPos.x);
+		info.posY = std::to_string(currentPos.y);
+		info.velX = std::to_string(this->velocityX);
+		info.velY = std::to_string(this->velocityY);
+		info.timeSinceLauch = std::to_string(m_totalTime);
+		this->projectile_info.push_back(info);
 
-		this->resultingVelocity = sqrt(pow(velocityX, 2) + pow(velocityY, 2));
+
+
 
 		if (dotDelay == dotDensity)
 		{
@@ -70,8 +146,9 @@ void Ball::update(float dt, sf::Vector2i cursorPos )
 				dotIndex = 0;
 
 			sf::CircleShape dot(dotRadius);
-			dot.setFillColor(sf::Color::Green);
-			dot.setPosition(this->startPos.x, startPos.y);
+			dot.setFillColor(this->dotColor);
+			dot.setOrigin(sf::Vector2f(dotRadius, dotRadius));
+			dot.setPosition(this->currentPos.x, currentPos.y);
 
 			this->dots[dotIndex++] = dot;
 			
@@ -79,26 +156,54 @@ void Ball::update(float dt, sf::Vector2i cursorPos )
 		}
 
 	}
-	else		//Follows cursor Position
-	{
-		this->shape->setPosition((float)cursorPos.x, (float)cursorPos.y);
-	}
-
-
 }
+
+void Ball::doAir()
+{
+	this->m_airForce = -0.47 * ((1.293 * pow(this->radius, 2) * M_PI * pow(resultingVelocity, 2)) / 2);
+}
+
+void Ball::doMagnus()
+{
+	/*float torque = m_airForce * radius;
+	torque += m_magnusForce * radius;
+	float inertia = (2.f * m_mass * radius * radius/ 5.f);
+	float angularAcceleration = torque / inertia;*/
+	this->m_magnusForce = (2*M_PI* 1.293*resultingVelocity*pow(radius, 4)*angularVelocity) / (2*radius);
+	this->sprite->rotate(angularVelocity);
+	this->angularVelocity -= 0.1f;
+}
+
+void Ball::setFinished()
+{
+	this->shape->setFillColor(sf::Color(0, 0, 0, 0));
+	this->done = true;
+}
+
+
 
 void Ball::draw(sf::RenderTarget& target, sf::RenderStates states) const
 {
 
 	target.draw(*this->shape);
+	target.draw(*this->sprite);
 	for (int i = 0; i < dotBufferCount; i++)
+	{
 		target.draw(dots[i]);
-
+	}
 
 }
 
 Ball::~Ball()
 {
-	delete this->shape;
-	delete[] this->dots;
+	if (this->shape != nullptr)
+	{
+		delete this->shape;
+		this->shape = nullptr;
+	}
+	if (this->dots != nullptr)
+	{
+		delete[] this->dots;
+		this->dots = nullptr;
+	}
 }
