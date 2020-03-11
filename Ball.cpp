@@ -1,16 +1,25 @@
 #include "Ball.h"
 
 Ball::Ball(float radius, sf::Color color)
-	:radius(radius), m_frameTime(0), m_airForce(0), m_mass(0),
-	m_totalTime(0), m_magnusForce(0), m_totalForce(0)
+	:radius(radius * 0.01), m_frameTime(0), m_airForce(0), m_mass(0),
+	m_totalTime(0), m_magnusForce(0), m_totalForce(0), speen(-2*M_PI*10), angularVelocity(6*M_PI)
 {
 	this->shape = new sf::CircleShape(radius);
 	this->shape->setFillColor(color);
-	this->shape->setRadius(radius);
-	this->shape->setOrigin(sf::Vector2f(radius, radius));
+	this->shape->setRadius(radius * 0.01);
+	this->shape->setOrigin(sf::Vector2f(radius* 0.01, radius* 0.01));
 	this->dots = new sf::CircleShape[dotBufferCount];
+	this->lineVertices = new sf::Vertex[dotBufferCount];
 	this->started = false;
-	this->m_mode = ONLY_GRAVITY;
+	this->m_mode = REALISM::ONLY_GRAVITY;
+	this->m_area = this->radius * this->radius * M_PI;
+
+	this->texture = new sf::Texture();
+	this->texture->loadFromFile("wonk-ball.png");
+	this->sprite = new sf::Sprite();
+	this->sprite->setTexture(*texture);
+	this->sprite->setOrigin(this->texture->getSize().x/2, this->texture->getSize().y / 2);
+	this->sprite->setScale(0.1, 0.1);
 }
 
 void Ball::shoot(sf::Vector2f startPos, float vel, float angle, REALISM mode)
@@ -30,32 +39,44 @@ void Ball::shoot(sf::Vector2f startPos, float vel, float angle, REALISM mode)
 
 	this->m_mode = mode;
 
+	output_info info;
+	info.posX = std::to_string(currentPos.x);
+	info.posY = std::to_string(currentPos.y);
+	info.velX = std::to_string(this->velocityX);
+	info.velY = std::to_string(this->velocityY);
+	info.timeSinceLauch = std::to_string(m_totalTime);
 
 	sf::CircleShape dot(dotRadius);
-	dot.setFillColor(sf::Color::Green);
+	dot.setFillColor(this->dotColor);
 	dot.setOrigin(sf::Vector2f(dotRadius, dotRadius));
-	dot.setPosition(this->currentPos.x, currentPos.y);
 
 	this->dots[dotIndex++] = dot;
-	this->dotDelay == 0;
+	this->dotDelay = 0;
 
-	this->m_mass = 2;
+	this->m_mass = 0.45;
 
 	switch (mode)
 	{
 	case ALL:
 		this->dotColor = sf::Color::Magenta;
+		info.realismMode = "All";
 		break;
 	case ONLY_GRAVITY:
+		info.realismMode = "Gravity";
 		break;
 	case AIR_RESISTANCE:
 		this->dotColor = sf::Color(40, 108, 130);
+		info.realismMode = "Air";
 		break;
 	case MAGNUS_EFFECT:
 		this->dotColor = sf::Color::Yellow;
+		info.realismMode = "Magnus";
 		break;
-
 	}
+	this->projectile_info.push_back(info);
+	dot.setPosition(this->currentPos.x, currentPos.y);
+	this->shape->setPosition(this->currentPos);
+	this->sprite->setPosition(this->currentPos);
 }
 
 void Ball::update(float dt)
@@ -64,47 +85,8 @@ void Ball::update(float dt)
 	{
 		dotDelay++;
 
-		/*
-			Tidsfaktorn är vår frame time: 16 ms, vilken vi även kan variera genom att höja/sänka vår FPS
-
-			Starthastigeten är en godtycklig hastighet vi kan ge bollen.
-
-			Startpositionen är där vi placerar musen när vi klickar, eller en godtycklig som ges när
-			bollen
-
-			I de inledande försöken är det enbart gravitationen g som verkar på bollen. Detta ger att
-			vi får en konstant hastighet i x-led och en hastighet i y-led som beror av tidsfaktorn och 
-			gravitationen. Hastigheten ges av formeln v = v0 + a*dt.
-
-			Sträckan beror av den nuvarande positionen för objektet, dess utgångshastighet samt tidsfaktorn. 
-
-
-			Luftmotståndskonstanten kommer att bli 0.29, då det är en kula. 
-
-			Luftens densitet sätts, något godtyckligt, till 1,2041 kg/m3.
-
-			Calculate: 
-			
-			Acceleration. Until we add forces, this will only be 
-			gravity, basically. 
-
-			Once we've added forces, we can calculate the acceleration through Fsum/mass
-
-			The velocity based on previous frame
-			New position
-
-			Jämför mot: https://www.desmos.com/calculator/on4xzwtdwz
-
-			save: 
-			currentPos = newPos;
-			currentVelocity = newVelocity;
-		*/
-
-		this->m_frameTime = (dt / 1000);
+		this->m_frameTime = dt;
 		this->m_totalTime += m_frameTime;
-
-		this->shape->setPosition(this->currentPos);
-
 
 		switch (this->m_mode)
 		{
@@ -121,14 +103,15 @@ void Ball::update(float dt)
 			this->doMagnus();
 			break;
 		}
+		
 
 		this->m_totalForce = m_magnusForce + m_airForce;
 
-		float forceX = m_totalForce * cos(angle);
+		float forceX = m_totalForce * cosf(angle);
 		this->accelerationX = forceX / m_mass;
 
-		float forceY = m_totalForce * sin(angle) - m_mass*GRAVITY;
-		this->accelerationY = forceY / m_mass;
+		float forceY = m_totalForce * sinf(angle) - m_mass*GRAVITY;
+		this->accelerationY = (forceY / m_mass);
 
 		this->velocityX += this->accelerationX * this->m_frameTime;
 		this->velocityY += this->accelerationY * this->m_frameTime;
@@ -143,8 +126,8 @@ void Ball::update(float dt)
 		this->currentPos.x = this->currentPos.x + this->velocityX * this->m_frameTime;
 		this->currentPos.y = this->currentPos.y - this->velocityY * this->m_frameTime;
 
-		//Set position before you calculate the new position, or else the " point of origin" 
-		//won't ever be used, as we update the position before it is used.
+		this->shape->setPosition(this->currentPos);
+		this->sprite->setPosition(this->currentPos);
 
 		//Save current Values afor output;
 		output_info info;
@@ -168,25 +151,31 @@ void Ball::update(float dt)
 
 			this->dots[dotIndex++] = dot;
 			
+			lineVertices[lineIndex++] = sf::Vertex(this->dots[dotIndex - 1].getPosition(), this->dotColor);
+
+
 			dotDelay = 0;
 		}
 
 	}
 }
 
+
+
 void Ball::doAir()
 {
-	//Negativ, då kraften kommer att vara riktad åt motsatt håll som vår boll färdas.
-	//Vet inte riktigt vilken koeefficient vi borde ha här, men det är nog bara att välja en
-	//så länge vi kan hänvisa till bra källor för det. Likadant med luftmotståndet. 
-	this->m_airForce = -0.47 * ((1.2941 * M_PI * pow(radius * 0.01, 2) * pow(resultingVelocity, 2)) / 2);
+	this->m_airForce = -0.47 * ((1.293 * pow(this->radius, 2) * M_PI * pow(resultingVelocity, 2)) / 2);
 }
 
 void Ball::doMagnus()
 {
-	//Jag *tror* att den här beräknas på rätt sätt. 
-	float angularVelocity = deltaAngle / m_frameTime;
-	this->m_magnusForce = -(2*M_PI* 1.2941*resultingVelocity*pow(radius * 0.001, 2)*angularVelocity) / (2*(radius*0.01));
+	/*float torque = m_airForce * radius;
+	torque += m_magnusForce * radius;
+	float inertia = (2.f * m_mass * radius * radius/ 5.f);
+	float angularAcceleration = torque / inertia;*/
+	this->m_magnusForce = (2 * M_PI * 1.293 * resultingVelocity * pow(radius, 4) * angularVelocity) / (2 * radius);
+	this->sprite->rotate(angularVelocity);
+	this->angularVelocity -= 0.1f;
 }
 
 void Ball::setFinished()
@@ -196,14 +185,16 @@ void Ball::setFinished()
 }
 
 
-
 void Ball::draw(sf::RenderTarget& target, sf::RenderStates states) const
 {
 
 	target.draw(*this->shape);
+	target.draw(*this->sprite);
 	for (int i = 0; i < dotBufferCount; i++)
 	{
-		target.draw(dots[i]);
+		//target.draw(dots[i]);
+		
+		target.draw(this->lineVertices, this->lineIndex, sf::LineStrip);
 	}
 
 }
@@ -219,5 +210,10 @@ Ball::~Ball()
 	{
 		delete[] this->dots;
 		this->dots = nullptr;
+	}
+	if (this->lineVertices != nullptr)
+	{
+		delete[] this->lineVertices;
+		this->lineVertices = nullptr;
 	}
 }

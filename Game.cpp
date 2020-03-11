@@ -1,19 +1,37 @@
 #include "Game.h"
 
 
+std::string Game::floorFloat(float f, unsigned int decimals)
+{
+	unsigned int strLen = 2 + decimals;
+
+	std::string fString = std::to_string(f);
+	std::string newString = "";
+	int i = 0;
+	for (auto c : fString)
+	{
+		i++;
+
+		newString += c;
+
+		if (i == strLen)
+			break;
+	}
+
+	return newString;
+}
+
 Game::Game(unsigned int width, unsigned int height, const char* title)
 {
 	this->window = new sf::RenderWindow(sf::VideoMode(width, height), title);
-	this->window->setFramerateLimit(this->FPS);
 	
 	this->window_height = height;
 	this->window_width = width;
 
-	this->radius = 5.f;
-	this->velocity = 40.f;
+	this->radius = 11.f;
+	this->velocity = 30.f;
 	this->angle = 30.f;
 
-	tgui::Theme::setDefault(&this->theme);
 
 	//Default level is G only.
 	this->levelOfRealism = REALISM::ONLY_GRAVITY;
@@ -43,7 +61,7 @@ Game::Game(unsigned int width, unsigned int height, const char* title)
 	this->velSlider = tgui::Slider::create(0.f, 100.f);
 	this->velSlider->setPosition(view.getCenter().x - (view.getSize().x / 2) + this->velSlider->getSize().x / 2, view.getCenter().y - (view.getSize().y / 2) + 40.f);
 	this->gui.add(this->velSlider);
-	this->velSlider->setValue(40.f);
+	this->velSlider->setValue(this->velocity);
 	this->velSlider->connect("ValueChanged", [&] {this->velocity = velSlider->getValue(); });
 	this->velSlider->setToolTip(tgui::Label::create("Changes the velocity of the ball"));
 
@@ -76,30 +94,54 @@ Game::Game(unsigned int width, unsigned int height, const char* title)
 	this->button[3]->connect("pressed", [&] {this->levelOfRealism = REALISM::ALL; });
 
 
+	//text  box for FPS
+	const sf::Vector2f textBoxSize(60, 25);
+	this->fpsTextBox = tgui::TextBox::create();
+	this->gui.add(fpsTextBox);
 
+	fpsTextBox->setPosition(angleSlider->getPosition().x + 400 , this->m_view.getCenter().y - 40);
+	fpsTextBox->setText(std::to_string((int)this->FPS));
+	fpsTextBox->setSize(textBoxSize.x, textBoxSize.y);
+	this->fpsTextBox->setVerticalScrollbarPolicy(tgui::Scrollbar::Policy::Never);
 	this->font.loadFromFile("c:/windows/fonts/arial.ttf");
-
+	
 	this->m_output.open("info.txt", 'rw');
 	this->m_output.seekg(std::ios_base::end);
 
 	sf::Text text;
 
-	//Inti text for angle and velocity
+
+	//init text box for angle and velocity
+	this->textBox = tgui::TextBox::create();
+	gui.add(textBox);
 	this->textBox->setPosition(this->angleSlider->getPosition().x - 60.f,
 		this->angleSlider->getPosition().y );
 
 	this->textBox->setSize(50, 50);
 	this->textBox->setVerticalScrollbarPolicy(tgui::Scrollbar::Policy::Never);
 	this->textBox->setInheritedOpacity(0.7f);
-
 	this->textBox->setTextSize(14);
 
-	this->gui.add(this->textBox);
+
+	this->massTextBox = tgui::TextBox::create();
+	gui.add(massTextBox);
+	this->massTextBox->setPosition(this->velSlider->getPosition().x, this->velSlider->getPosition().y + 40);
+	this->massTextBox->setSize(textBoxSize);
+	this->massTextBox->setVerticalScrollbarPolicy(tgui::Scrollbar::Policy::Never);
+	this->massTextBox->setText("0.45");
+	this->massTextBox->connect("TextChanged", [&] {this->mass = std::stof(massTextBox->getText().toAnsiString()); });
+	
 
 
+	this->radTextBox = tgui::TextBox::create();
+	gui.add(radTextBox);
+	radTextBox->setSize(textBoxSize);
+	radTextBox->setPosition(massTextBox->getPosition().x, massTextBox->getPosition().y + 25.0f);
+	radTextBox->setText(floorFloat(this->radius, 3));
+	radTextBox->connect("TextChanged", [&] { if (sf::Keyboard::isKeyPressed(sf::Keyboard::Enter)) this->radius = std::stof(radTextBox->getText().toAnsiString()); });
+	this->massTextBox->setVerticalScrollbarPolicy(tgui::Scrollbar::Policy::Never);
 
 	//init ground
-	
 	this->ground = new Ground(view.getCenter().x - (view.getSize().x / 2), view.getCenter().y + (view.getSize().y/2) -5);
 
 
@@ -127,11 +169,12 @@ Game::Game(unsigned int width, unsigned int height, const char* title)
 void Game::start()
 {
 
-	sf::Clock clock;
+
+	auto start = clock.now();
+
 
 	while (this->window->isOpen())
 	{
-		
 
 
 		sf::Event e;
@@ -139,24 +182,6 @@ void Game::start()
 		{
 			if (e.type == sf::Event::Closed)
 				this->window->close();
-
-			//if (e.type == sf::Event::MouseButtonPressed && e.mouseButton.button == sf::Mouse::Left)
-			//{
-			//	sf::Vector2i mousePos = sf::Mouse::getPosition(*this->window);
-			//	sf::Vector2f worldPos = window->mapPixelToCoords(mousePos);
-
-			//	if (!this->balls.back()->hasStarted())
-			//	{
-			//		this->balls.back()->shoot(worldPos, 40.f, 30.f);
-			//	}
-			//	else
-			//	{
-			//		Ball* ball = new Ball(5.0f);
-			//		this->balls.push_back(ball);
-			//		this->balls.back()->shoot(worldPos, velocity, angle);
-			//	}
-
-			//}
 
 			//Update the text on the sliders
 			//Can only happen during mouse mooved and mouse scrolled event
@@ -168,24 +193,30 @@ void Game::start()
 				std::string velocityString = std::to_string((int)this->velSlider->getValue());
 				this->textBox->addText(velocityString);
 			}
-
+			
+			if (e.type == sf::Event::KeyReleased && e.key.code == sf::Keyboard::Enter)
+			{
+				this->FPS = std::stoi(this->fpsTextBox->getText().toAnsiString());
+				
+			}
 
 			if (e.type == sf::Event::KeyReleased && e.key.code == sf::Keyboard::Space)
 			{
 				//sf::Vector2f worldPos = window->mapPixelToCoords(mousePos);
 
-				sf::Vector2f worldPos = sf::Vector2f(this->m_view.getCenter().x - (this->m_view.getSize().x / 2) + radius,
-					this->m_view.getCenter().y + (this->m_view.getSize().y / 2) - 10);
+				sf::Vector2f worldPos = sf::Vector2f(this->m_view.getCenter().x - (this->m_view.getSize().x / 2) + radius * 0.01f,
+					this->m_view.getCenter().y + (this->m_view.getSize().y / 2) - radius * 0.01f - this->ground->getSize().y);
 
 
 				if (!this->balls.back()->hasStarted() && !this->balls.empty())
 				{
-					this->balls.back()->shoot(worldPos, 40.f, 30.f, this->levelOfRealism);
+					this->balls.back()->shoot(worldPos, velocity, angle, this->levelOfRealism);
 				}
 				else
 				{
 					
-					Ball* ball = new Ball(5.0f);
+					Ball* ball = new Ball(this->radius);
+					ball->setMass( this->mass);
 					this->balls.push_back(ball);
 					this->balls.back()->shoot(worldPos, velocity, angle, this->levelOfRealism);
 					
@@ -196,17 +227,20 @@ void Game::start()
 		}
 
 		
-		if (clock.getElapsedTime().asMilliseconds() >= 1.0 / this->FPS)
+
+		float deltaTime = std::chrono::duration_cast<ms>(clock.now() - start).count() / 1000;
+		if (deltaTime >= (1.0f/ FPS))
 		{
 			//Update text
 			if (this->balls[currentBall]->hasStarted() && !this->balls[currentBall]->hasFinished())
 			{
-				this->m_text.back().setString("X: " + std::to_string(this->balls.at(currentBall)->getPosition().x) + "\nY: " + std::to_string(this->balls.at(currentBall)->getPosition().y));
-				this->m_text.back().setString("VelX: " + std::to_string(this->balls.at(currentBall)->getVelocity().x) + "\nVelY: " + std::to_string(this->balls.at(currentBall)->getVelocity().y));
+				this->m_text.back().setString("X: " + std::to_string(this->balls.at(currentBall)->getPosition().x) + "\nY: " + std::to_string(  this->balls.at(currentBall)->getPosition().y));
+				this->m_text.back().setString("VelX: " + floorFloat(balls[currentBall]->getVelocity().x, 3) + "\nVelY: " + floorFloat(balls[currentBall]->getVelocity().y, 3));
+				
 			}
 			
 
-			std::cout << clock.getElapsedTime().asMilliseconds() << std::endl;
+			std::cout << deltaTime  << std::endl;
 
 
 			sf::Vector2i mousePos = sf::Mouse::getPosition(*this->window);
@@ -220,35 +254,36 @@ void Game::start()
 
 
 			for (int i = 0; i < this->balls.size() && balls.at(currentBall)->hasFinished() == false; i++)
-				balls.at(i)->update(clock.getElapsedTime().asMilliseconds() );//, worldPos);
+				balls.at(i)->update(deltaTime );//, worldPos);
 
 
 
 
 			this->ground->update(this->balls, this->file_output);
 
-			clock.restart();
+			start = clock.now();
+	
+		
+			this->window->clear(sf::Color::Blue);
+			this->window->draw(this->background);
+			this->window->draw(*this->ground);
+			this->gui.draw();
+
+
+			for (auto b : balls)
+			{
+				if (b != nullptr)
+					this->window->draw(*b);
+			}
+
+			for (int i = 0; i < this->m_text.size(); i++)
+			{
+				this->window->draw(this->m_text[i]);
+			}
+
+			this->window->display();
 		}
 
-
-		this->window->clear(sf::Color::Blue);
-		this->window->draw(this->background);
-		this->window->draw(*this->ground);
-		this->gui.draw();
-
-
-		for (auto b : balls)
-		{
-			if (b != nullptr)
-				this->window->draw(*b);
-		}
-
-		for (int i = 0; i <this->m_text.size(); i++)
-		{
-			this->window->draw(this->m_text[i]);
-		}
-
-		this->window->display();
 
 	}
 }
@@ -268,10 +303,16 @@ void Game::output_info(const char* textfile)
 
 	}
 
-	outFile << "| Time since lauch | " << " | Position X | " << " | Position Y | " << "| Velocity X |" << " | Velocity Y | " << std::endl;
+	outFile << "| Tot. Time | " << " | Position X | " << " | Position Y | " << "| Velocity X |" << " | Velocity Y | " << " | Realism Level | " << std::endl;
 	for (auto i : file_output)
 	{
-		outFile << "|	" << i.timeSinceLauch << "  |	|" << i.posX << "| |" << i.posY << "| |" << i.velX << "| |" << i.velY << "  |" << std::endl;
+		outFile << "|	" << i.timeSinceLauch << "  |	|" << i.posX << "| |" << i.posY << "| |" << i.velX << "| |" << i.velY << " | ";
+		if (i.realismMode != " ")
+		{
+			outFile << "| " << i.realismMode << " | ";
+		}
+
+		outFile << std::endl;
 	}
 
 	outFile.close();

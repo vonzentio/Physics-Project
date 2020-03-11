@@ -32,12 +32,13 @@ class Ball:public sf::Drawable
 {
 public:
 	struct output_info {
-		std::string realismMode = "Projectile Motion - Full Realism";
+		std::string realismMode = " ";
 		std::string timeSinceLauch;
 		std::string posX;
 		std::string posY;
 		std::string velX;
 		std::string velY;
+	
 	};
 
 private:
@@ -45,13 +46,17 @@ private:
 
 
 	sf::CircleShape* shape;
+	sf::Sprite* sprite;
+	sf::Texture* texture;
 	sf::CircleShape* dots;
+	sf::Vertex* lineVertices;
 	sf::Color dotColor = sf::Color::Green;
 
 	unsigned int dotBufferCount = 128;
 	float dotRadius = 0.7f;
 	unsigned int dotDensity = 5;
-	int dotIndex;
+	int lineIndex = 0;
+	int dotIndex = 0;
 	int dotDelay;
 
 	float m_frameTime;
@@ -70,11 +75,14 @@ private:
 	float accelerationY;
 	float velocityX;
 	float velocityY;
+	float angularVelocity;
 	float xPos;
 	float yPos;
 	float resultingVelocity;
+	float m_area;
 
 
+	float speen;
 
 	bool started = false;
 	bool done = false;
@@ -122,6 +130,24 @@ public:
 		return sf::Vector2f(this->velocityX, this->velocityY);
 	}
 
+
+
+	float getMass() {
+		return this->m_mass;
+	}
+
+	void setMass(float newMass) {
+		this->m_mass = newMass;
+		std::cout << m_mass << std::endl;
+	}
+
+	float getRadius() {
+		return this->radius;
+	}
+
+	void setRadius(float newRadius){
+		this->radius = newRadius;
+	}
 
 	// Inherited via Drawable
 	virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const override;
